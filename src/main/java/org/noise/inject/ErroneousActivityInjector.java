@@ -4,7 +4,7 @@ import java.util.*;
 
 public class ErroneousActivityInjector extends NoiseInjector {
 
-    private Set<String> activities = new HashSet<>();
+    private Set<Character> activities = new HashSet<>();
     public ErroneousActivityInjector(List<String> traces, double noiseRatio) {
         super(traces, noiseRatio);
     }
@@ -42,13 +42,10 @@ public class ErroneousActivityInjector extends NoiseInjector {
     private String logNotExecutedSystemActivities(String trace) {
         Random random = new Random();
         // select a random activity from the activity list to inject
-        String[] activitiesArray = activities.toArray(new String[0]);
-        String injectActivity = activitiesArray[random.nextInt(activitiesArray.length)];
+        Character[] activitiesArray = activities.toArray(new Character[0]);
+        Character injectActivity = activitiesArray[random.nextInt(activitiesArray.length)];
         // inject
-        int injectIndex = random.nextInt(trace.length());
-        StringBuilder builder = new StringBuilder(trace);
-        builder.insert(injectIndex, injectActivity);
-        return builder.toString();
+        return injectActivity(trace, injectActivity);
     }
 
     private String logActivitiesNotInSystem(String trace) {
@@ -59,16 +56,21 @@ public class ErroneousActivityInjector extends NoiseInjector {
             activityNotInSystem = (char) ('a' + random.nextInt(26));
         } while (activities.contains(Character.toString(activityNotInSystem)));
         // inject
+        return injectActivity(trace, activityNotInSystem);
+    }
+
+    private String injectActivity(String trace, char activity) {
+        Random random = new Random();
         int injectIndex = random.nextInt(trace.length());
         StringBuilder builder = new StringBuilder(trace);
-        builder.insert(injectIndex, activityNotInSystem);
+        builder.insert(injectIndex, activity);
         return builder.toString();
     }
 
     private void getDistinctActivities() {
         for (String trace : traces) {
             for (char activity : trace.toCharArray()) {
-                activities.add(String.valueOf(activity));
+                activities.add(activity);
             }
         }
     }
