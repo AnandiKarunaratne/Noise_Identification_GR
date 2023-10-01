@@ -1,4 +1,4 @@
-package org.noise;
+package org.noise.identify;
 
 public class StringDistanceCalculator {
 

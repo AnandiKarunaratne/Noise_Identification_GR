@@ -1,8 +1,8 @@
-package org.noise;
+package org.noise.identify;
 
 import java.util.*;
 
-public class ClusterBasedNoiseIdentifier extends NoiseIdentifier{
+public class ClusterBasedNoiseIdentifier extends NoiseIdentifier {
     ClusterBasedNoiseIdentifier(List<String> traces) {
         super(traces);
     }

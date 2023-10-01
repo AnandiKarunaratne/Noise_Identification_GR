@@ -1,15 +1,15 @@
-package org.noise;
+package org.noise.identify;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class ModelBasedNoiseIdentifier extends NoiseIdentifier{
-    ModelBasedNoiseIdentifier(List<String> traces) {
+public class ModelBasedNoiseIdentifier extends NoiseIdentifier {
+    public ModelBasedNoiseIdentifier(List<String> traces) {
         super(traces);
     }
 
     @Override
-    List<String> identifyNoise() {
+    public List<String> identifyNoise() {
         // calculate the threshold for the max occurring list
         int threshold = (int) (0.10 * traces.size());
         Map<String, Integer> traceOccurrences = new HashMap<>();

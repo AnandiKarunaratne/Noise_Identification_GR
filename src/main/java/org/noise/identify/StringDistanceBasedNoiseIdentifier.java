@@ -1,16 +1,16 @@
-package org.noise;
+package org.noise.identify;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
 public class StringDistanceBasedNoiseIdentifier extends NoiseIdentifier {
 
-    StringDistanceBasedNoiseIdentifier(List<String> traces) {
+    public StringDistanceBasedNoiseIdentifier(List<String> traces) {
         super(traces);
     }
 
     @Override
-    List<String> identifyNoise() {
+    public List<String> identifyNoise() {
         // calculate the threshold for the max occurring list
         int threshold = (int) (0.10 * traces.size());
         Map<String, Integer> traceOccurrences = new HashMap<>();
