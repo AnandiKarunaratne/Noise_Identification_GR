@@ -4,39 +4,44 @@ import java.util.*;
 
 public class ErroneousActivityInjector extends NoiseInjector {
 
-    private Set<Character> activities = new HashSet<>();
-    public ErroneousActivityInjector(List<String> traces, double noiseRatio) {
-        super(traces, noiseRatio);
-    }
+    private final Set<Character> activities = new HashSet<>();
 
     @Override
-    public List<String> injectNoise() {
-        // could be either activities in the system, but not executed OR activities not in the system
-
-        List<String> tracesWithNoise = new ArrayList<>(traces);
+    public String injectNoise(List<String> traces) {
         Random random = new Random();
-        getDistinctActivities();
+        getDistinctActivities(traces);
 
-        for (int i = 0; i < numOfNoiseTraces; i++) {
+        //for (int i = 0; i < numOfNoiseTraces; i++) {
             // select random trace
             String trace = traces.get(random.nextInt(traces.size()));
 
             // define a probability to add activity not in the system
-            double p = 0.1;
+             double p1 = 0.45;
+             double p2 = 0.1;
 
             String modifiedTrace;
-            if (random.nextDouble() < p) {
-                // activities not in the system
-                modifiedTrace = logActivitiesNotInSystem(trace);
-            } else {
+            if (random.nextDouble() < p1) {
+                // duplicate activities
+                modifiedTrace = logDuplicateActivity(trace);
+            } else if (random.nextDouble() < (p1+p2)){
                 // activities in the system, but not executed
                 modifiedTrace = logNotExecutedSystemActivities(trace);
+            } else {
+                // activities not in the system
+                modifiedTrace = logActivitiesNotInSystem(trace);
             }
-            tracesWithNoise.add(modifiedTrace);
             System.out.println(trace + " " + modifiedTrace);
-        }
 
-        return tracesWithNoise;
+        return modifiedTrace;
+    }
+
+    private String logDuplicateActivity(String trace) {
+        Random random = new Random();
+        int randomIndex = random.nextInt(trace.length());
+        char randomChar = trace.charAt(randomIndex);
+        StringBuilder builder = new StringBuilder(trace);
+        builder.insert(randomIndex, randomChar);
+        return builder.toString();
     }
 
     private String logNotExecutedSystemActivities(String trace) {
@@ -67,7 +72,7 @@ public class ErroneousActivityInjector extends NoiseInjector {
         return builder.toString();
     }
 
-    private void getDistinctActivities() {
+    private void getDistinctActivities(List<String> traces) {
         for (String trace : traces) {
             for (char activity : trace.toCharArray()) {
                 activities.add(activity);

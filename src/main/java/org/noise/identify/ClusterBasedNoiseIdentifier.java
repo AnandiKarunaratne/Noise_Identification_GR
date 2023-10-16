@@ -3,12 +3,9 @@ package org.noise.identify;
 import java.util.*;
 
 public class ClusterBasedNoiseIdentifier extends NoiseIdentifier {
-    ClusterBasedNoiseIdentifier(List<String> traces) {
-        super(traces);
-    }
 
     @Override
-    List<String> identifyNoise() {
+    List<String> identifyNoise(List<String> traces) {
         // clustering algorithm: k-means
         int numOfClusters = 5;
         int maxIterations = 100;

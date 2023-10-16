@@ -5,16 +5,13 @@ import java.util.List;
 import java.util.Random;
 
 public class OutOfOrderActivityReporter extends NoiseInjector {
-    public OutOfOrderActivityReporter(List<String> traces, double noiseRatio) {
-        super(traces, noiseRatio);
-    }
 
     @Override
-    public List<String> injectNoise() {
-        List<String> tracesWithNoise = new ArrayList<>(traces);
+    public String injectNoise(List<String> traces) {
+        //List<String> tracesWithNoise = new ArrayList<>(traces);
 
         Random random = new Random();
-        for (int i = 0; i < numOfNoiseTraces; i++) {
+//        for (int i = 0; i < numOfNoiseTraces; i++) {
             // select random trace
             String trace = traces.get(random.nextInt(traces.size()));
             // select indices to swap the activities
@@ -23,14 +20,29 @@ public class OutOfOrderActivityReporter extends NoiseInjector {
             do { index2 = random.nextInt(trace.length()); } while (index1 == index2); // ensure two indices are different
             // swap
             char[] activities = trace.toCharArray();
-            char temp = activities[index1];
-            activities[index1] = activities[index2];
-            activities[index2] = temp;
-            String modifiedTrace = new String(activities);
-            System.out.println(trace + " " + modifiedTrace);
-            tracesWithNoise.add(modifiedTrace);
-        }
+            char[] modifiedActivities = new char[trace.length()];
 
-        return tracesWithNoise;
+            if (index1 > index2) {
+                int temp = index1;
+                index1 = index2;
+                index2 = temp;
+            }
+
+            for (int j = 0; j < trace.length(); j++) {
+                if (j == index1) {
+                    modifiedActivities[index2] = activities[j];
+                } else if (j > index1 && j <= index2) {
+                    modifiedActivities[j - 1] = activities[j];
+                } else {
+                    modifiedActivities[j] = activities[j];
+                }
+            }
+
+            String modifiedTrace = new String(modifiedActivities);
+            System.out.println(trace + " " + modifiedTrace);
+            //tracesWithNoise.add(modifiedTrace);
+//        }
+
+        return modifiedTrace;
     }
 }
