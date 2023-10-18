@@ -7,7 +7,7 @@ public class ErroneousActivityInjector extends NoiseInjector {
     private final Set<Character> activities = new HashSet<>();
 
     @Override
-    public String injectNoise(List<String> traces) {
+    public String[] injectNoise(List<String> traces) {
         Random random = new Random();
         getDistinctActivities(traces);
 
@@ -17,7 +17,7 @@ public class ErroneousActivityInjector extends NoiseInjector {
 
             // define a probability to add activity not in the system
              double p1 = 0.45;
-             double p2 = 0.1;
+             double p2 = 0.45;
 
             String modifiedTrace;
             if (random.nextDouble() < p1) {
@@ -32,7 +32,10 @@ public class ErroneousActivityInjector extends NoiseInjector {
             }
             System.out.println(trace + " " + modifiedTrace);
 
-        return modifiedTrace;
+        String[] result = new String[2];
+        result[0] = trace;
+        result[1] = modifiedTrace;
+        return result;
     }
 
     private String logDuplicateActivity(String trace) {
@@ -54,12 +57,15 @@ public class ErroneousActivityInjector extends NoiseInjector {
     }
 
     private String logActivitiesNotInSystem(String trace) {
+        Set<Character> activitiesWithIO = new HashSet<>(activities);
+        activitiesWithIO.add('i');
+        activitiesWithIO.add('o');
         Random random = new Random();
         // select a random activity not in the activity list to inject
         char activityNotInSystem;
         do {
             activityNotInSystem = (char) ('a' + random.nextInt(26));
-        } while (activities.contains(Character.toString(activityNotInSystem)));
+        } while (activitiesWithIO.contains(Character.toString(activityNotInSystem)));
         // inject
         return injectActivity(trace, activityNotInSystem);
     }

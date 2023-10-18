@@ -7,7 +7,7 @@ import java.util.Random;
 public class OutOfOrderActivityReporter extends NoiseInjector {
 
     @Override
-    public String injectNoise(List<String> traces) {
+    public String[] injectNoise(List<String> traces) {
         //List<String> tracesWithNoise = new ArrayList<>(traces);
 
         Random random = new Random();
@@ -43,6 +43,9 @@ public class OutOfOrderActivityReporter extends NoiseInjector {
             //tracesWithNoise.add(modifiedTrace);
 //        }
 
-        return modifiedTrace;
+        String[] result = new String[2];
+        result[0] = trace;
+        result[1] = modifiedTrace;
+        return result;
     }
 }
