@@ -10,7 +10,7 @@ import java.util.List;
 
 public class LogGeneratorWithNoise {
 
-    public void generateLog(String filePath) {
+    public void  generateLog(String filePath) {
         List<String> log = new ArrayList<>();
         List<String> noiseTraces1 = new ArrayList<>();
         List<String> traceRemovedLog1 = new ArrayList<>();
@@ -27,10 +27,10 @@ public class LogGeneratorWithNoise {
             int initialNoiseCount;
             if (logSize == 100) {
                 incrementalLogSize = 100;
-                initialNoiseCount = 5;
+                initialNoiseCount = (int) Math.round(0.25);
             } else {
                 incrementalLogSize = logSize - log.size();
-                initialNoiseCount = logSize * 5 / 100 - noiseTraces1.size();
+                initialNoiseCount = (int) Math.round(logSize * 0.25 / 100) - noiseTraces1.size();
             }
 
             List<String> newSystemTraces = new SystemTraceGenerator().generateLog(incrementalLogSize);
@@ -38,16 +38,16 @@ public class LogGeneratorWithNoise {
             traceRemovedLog1.addAll(newSystemTraces);
             traceRemovedLog2.addAll(newSystemTraces);
             traceRemovedLog3.addAll(newSystemTraces);
-            new XESGenerator().generateXES(log, filePath + "/OmitActivity/Logs/log-" + logSize + "-0.xes");
-            new XESGenerator().generateXES(log, filePath + "/OutOfOrder/Logs/log-" + logSize + "-0.xes");
-            new XESGenerator().generateXES(log, filePath + "/InjectActivity/Logs/log-" + logSize + "-0.xes");
+            new XESGenerator().generateXES(log, filePath + "/OmitActivity/Logs/log-" + logSize + "-0.0.xes");
+            new XESGenerator().generateXES(log, filePath + "/OutOfOrder/Logs/log-" + logSize + "-0.0.xes");
+            new XESGenerator().generateXES(log, filePath + "/InjectActivity/Logs/log-" + logSize + "-0.0.xes");
 
             int numOfNoise;
-            for (double noise = 0.05; noise <= 0.2; noise = noise + 0.05) {
-                if (noise == 0.05) {
+            for (double noise = 0.0025; noise <= 0.01; noise = noise + 0.0025) {
+                if (noise == 0.0025) {
                     numOfNoise = initialNoiseCount;
                 } else {
-                    numOfNoise = (int) (logSize * 0.05);
+                    numOfNoise = (int) (Math.round(logSize * noise)) - noiseTraces1.size();
                 }
 
                 for (int i = 0; i < numOfNoise; i++) {
@@ -74,17 +74,17 @@ public class LogGeneratorWithNoise {
                 }
                 List<String> logWithNoise1 = new ArrayList<>(traceRemovedLog1);
                 logWithNoise1.addAll(noiseTraces1);
-                new XESGenerator().generateXES(logWithNoise1, filePath + "/OmitActivity/Logs/log-" + logSize + "-" + (int)(noise * 100) + ".xes");
+                new XESGenerator().generateXES(logWithNoise1, filePath + "/OmitActivity/Logs/log-" + logSize + "-" + (noise * 100) + ".xes");
                 System.out.println(logWithNoise1.size());
 
                 List<String> logWithNoise2 = new ArrayList<>(traceRemovedLog2);
                 logWithNoise2.addAll(noiseTraces2);
-                new XESGenerator().generateXES(logWithNoise2, filePath + "/OutOfOrder/Logs/log-" + logSize + "-" + (int)(noise * 100) + ".xes");
+                new XESGenerator().generateXES(logWithNoise2, filePath + "/OutOfOrder/Logs/log-" + logSize + "-" + (noise * 100) + ".xes");
                 System.out.println(logWithNoise2.size());
 
                 List<String> logWithNoise3 = new ArrayList<>(traceRemovedLog3);
                 logWithNoise3.addAll(noiseTraces3);
-                new XESGenerator().generateXES(logWithNoise3, filePath + "/InjectActivity/Logs/log-" + logSize + "-" + (int)(noise * 100) + ".xes");
+                new XESGenerator().generateXES(logWithNoise3, filePath + "/InjectActivity/Logs/log-" + logSize + "-" + (noise * 100) + ".xes");
                 System.out.println(logWithNoise3.size());
             }
         }
