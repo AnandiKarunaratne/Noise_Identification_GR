@@ -1,121 +1,119 @@
 package org.noise;
 
-import org.noise.inject.ActivityLoggingOmissionInjector;
-import org.noise.inject.ErroneousActivityInjector;
-import org.noise.inject.OutOfOrderActivityReporter;
-import org.utils.files.xes.XESGenerator;
+import org.jbpt.graph.DirectedGraph;
+import org.jbpt.hypergraph.abs.Vertex;
+import org.noise.inject.*;
+import org.utils.discovery.ProcessDiscovery;
+import org.utils.log.EventLog;
+import org.utils.log.Trace;
+import org.utils.files.xes.XESReader;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 public class LogGeneratorWithNoise {
 
-    public void  generateLog(String filePath) {
-        List<String> log = new ArrayList<>();
-        List<String> noiseTraces1 = new ArrayList<>();
-        List<String> traceRemovedLog1 = new ArrayList<>();
-        List<String> noiseTraces2 = new ArrayList<>();
-        List<String> traceRemovedLog2 = new ArrayList<>();
-        List<String> noiseTraces3 = new ArrayList<>();
-        List<String> traceRemovedLog3 = new ArrayList<>();
+    private String baseFilePath = null;
+    private DirectedGraph directedGraph;
 
-        int[] logSizes = {100, 500, 1000, 5000, 10000};
+    public void  generateLog(double[] noiseLevels, String logFilePath) {
+        EventLog eventLog = new XESReader().readXES(logFilePath);
+        directedGraph = new ProcessDiscovery().discoverDG(eventLog);
 
-        for (int logSize : logSizes) {
-            // generate logs without noise
-            int incrementalLogSize;
-            int initialNoiseCount;
-            if (logSize == 100) {
-                incrementalLogSize = 100;
-                initialNoiseCount = (int) Math.round(0.25);
-            } else {
-                incrementalLogSize = logSize - log.size();
-                initialNoiseCount = (int) Math.round(logSize * 0.25 / 100) - noiseTraces1.size();
-            }
+        int lastIndex = logFilePath.lastIndexOf('.');
+        baseFilePath = (lastIndex != -1) ? logFilePath.substring(0, lastIndex) : logFilePath;
 
-            List<String> newSystemTraces = new SystemTraceGenerator().generateLog(incrementalLogSize);
-            log.addAll(newSystemTraces);
-            traceRemovedLog1.addAll(newSystemTraces);
-            traceRemovedLog2.addAll(newSystemTraces);
-            traceRemovedLog3.addAll(newSystemTraces);
-            new XESGenerator().generateXES(log, filePath + "/OmitActivity/Logs/log-" + logSize + "-0.0.xes");
-            new XESGenerator().generateXES(log, filePath + "/OutOfOrder/Logs/log-" + logSize + "-0.0.xes");
-            new XESGenerator().generateXES(log, filePath + "/InjectActivity/Logs/log-" + logSize + "-0.0.xes");
+        for (NoiseType noiseType : NoiseType.values()) {
+            generateNoiseTraces(eventLog, noiseType, noiseLevels);
+        }
+    }
 
-            int numOfNoise;
-            for (double noise = 0.0025; noise <= 0.01; noise = noise + 0.0025) {
-                if (noise == 0.0025) {
-                    numOfNoise = initialNoiseCount;
-                } else {
-                    numOfNoise = (int) (Math.round(logSize * noise)) - noiseTraces1.size();
-                }
+    private void generateNoiseTraces(EventLog eventLog, NoiseType noiseType, double[] noiseLevels) {
+        List<Trace> noiseTraces = new ArrayList<>();
+        EventLog traceRemovedLog = new EventLog(eventLog);
 
-                for (int i = 0; i < numOfNoise; i++) {
-                    String[] noiseResult1 = new ActivityLoggingOmissionInjector().injectNoise(traceRemovedLog1);
-                    String replacedTrace1 = noiseResult1[0];
-                    String noiseTrace1 = noiseResult1[1];
-                    System.out.println(noiseTrace1);
-                    traceRemovedLog1.remove(replacedTrace1);
-                    noiseTraces1.add(noiseTrace1);
-
-                    String[] noiseResult2 = new OutOfOrderActivityReporter().injectNoise(traceRemovedLog2);
-                    String replacedTrace2 = noiseResult2[0];
-                    String noiseTrace2 = noiseResult2[1];
-                    System.out.println(noiseTrace2);
-                    traceRemovedLog2.remove(replacedTrace2);
-                    noiseTraces2.add(noiseTrace2);
-
-                    String[] noiseResult3 = new ErroneousActivityInjector().injectNoise(traceRemovedLog3);
-                    String replacedTrace3 = noiseResult3[0];
-                    String noiseTrace3 = noiseResult3[1];
-                    System.out.println(noiseTrace3);
-                    traceRemovedLog3.remove(replacedTrace3);
-                    noiseTraces3.add(noiseTrace3);
-                }
-                List<String> logWithNoise1 = new ArrayList<>(traceRemovedLog1);
-                logWithNoise1.addAll(noiseTraces1);
-                new XESGenerator().generateXES(logWithNoise1, filePath + "/OmitActivity/Logs/log-" + logSize + "-" + (noise * 100) + ".xes");
-                System.out.println(logWithNoise1.size());
-
-                List<String> logWithNoise2 = new ArrayList<>(traceRemovedLog2);
-                logWithNoise2.addAll(noiseTraces2);
-                new XESGenerator().generateXES(logWithNoise2, filePath + "/OutOfOrder/Logs/log-" + logSize + "-" + (noise * 100) + ".xes");
-                System.out.println(logWithNoise2.size());
-
-                List<String> logWithNoise3 = new ArrayList<>(traceRemovedLog3);
-                logWithNoise3.addAll(noiseTraces3);
-                new XESGenerator().generateXES(logWithNoise3, filePath + "/InjectActivity/Logs/log-" + logSize + "-" + (noise * 100) + ".xes");
-                System.out.println(logWithNoise3.size());
-            }
+        NoiseInjector noiseInjector;
+        switch (noiseType) {
+            case OMIT_ACTIVITY:
+                noiseInjector = new ActivityLoggingOmissionInjector();
+                break;
+            case INJECT_ACTIVITY:
+                noiseInjector = new ErroneousActivityInjector();
+                break;
+            case OUT_OF_ORDER:
+                noiseInjector = new OutOfOrderActivityReporter();
+                break;
+            default:
+                noiseInjector = new MixedNoiseInjector();
+                break;
         }
 
+        int logSize = eventLog.size();
 
+        for (double noiseLevel : noiseLevels) {
+            double noise = noiseLevel / 100.0;
+            int numOfNoise = (noiseLevel == noiseLevels[0]) ? (int) Math.round(logSize * noise) : (int) (Math.round(logSize * noise)) - noiseTraces.size();
 
+            for (int i = 0; i < numOfNoise; i++) {
+                Trace[] noiseResult;
+                do noiseResult = noiseInjector.injectNoise(traceRemovedLog);
+                while (checkConformance(noiseResult[1]));
+                // add a do-while to check whether generated noise trace conforms to the system
+                Trace replacedTrace = noiseResult[0];
+                Trace noiseTrace = noiseResult[1];
+                System.out.println(noiseTrace);
+                traceRemovedLog.remove(replacedTrace);
+                noiseTraces.add(noiseTrace);
+            }
 
+            EventLog logWithNoise = new EventLog(traceRemovedLog);
+            logWithNoise.addAll(noiseTraces);
+            logWithNoise.serializeEventLog(baseFilePath + "-" + getNoiseTypeShort(noiseType) + "-" + noiseLevel + ".xes");
+            System.out.println(logWithNoise.size());
+        }
+    }
 
+    private String getNoiseTypeShort(NoiseType noiseType) {
+        switch (noiseType) {
+            case OMIT_ACTIVITY:
+                return "oa";
+            case INJECT_ACTIVITY:
+                return "ia";
+            case OUT_OF_ORDER:
+                return "ooo";
+            case ALL:
+                return "all";
+        }
+        return "";
+    }
 
-
-
-
-
-
-//        Random random = new Random();
-//        for (int i = 0; i < numOfNoise; i++) {
-//            int noiseTypeSelector = random.nextInt(3);
-//            String noiseTrace = null;
-//            switch (noiseTypeSelector) {
-//                case 0:
-//                    noiseTrace = new ErroneousActivityInjector(new SystemTraceGenerator().generateLog(100)).injectNoise();
-//                    break;
-//                case 1:
-//                    noiseTrace = new ActivityLoggingOmissionInjector(new SystemTraceGenerator().generateLog(100)).injectNoise();
-//                    break;
-//                case 2:
-//                    noiseTrace = new OutOfOrderActivityReporter(new SystemTraceGenerator().generateLog(100)).injectNoise();
-//                    break;
-//            }
-//            noise.add(noiseTrace);
-//        }
-
+    private boolean checkConformance(Trace trace) {
+        boolean isConforming = true;
+        Collection<Vertex> vertices = directedGraph.getVertices();
+        Trace checkTrace = new Trace(trace);
+        // check for INPUT and OUTPUT
+        Vertex input = null;
+        Vertex output = null;
+        for (Vertex vertex : vertices) {
+            if (vertex.getName().equals("INPUT")) input = vertex;
+            if (vertex.getName().equals("OUTPUT")) output = vertex;
+        }
+        if (input != null && output != null) {
+            Vertex currentVertex = input;
+            checkTrace.add("OUTPUT");
+            int index = 0;
+            while(currentVertex != output) {
+                boolean isSuccessor = false;
+                Collection<Vertex> successors = directedGraph.getDirectSuccessors(currentVertex);
+                for (Vertex successor : successors) if (successor.getName().equals(checkTrace.get(index))) isSuccessor = true;
+                if (!isSuccessor) return false;
+                else {
+                    for (Vertex vertex : vertices) if (vertex.getName().equals(checkTrace.get(index))) currentVertex = vertex;
+                    index++;
+                }
+            }
+        } else isConforming = false;
+        return isConforming;
     }
 }

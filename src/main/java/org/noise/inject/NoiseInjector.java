@@ -1,11 +1,10 @@
 package org.noise.inject;
 
-import org.apache.commons.lang3.tuple.Pair;
-
-import java.util.List;
+import org.utils.log.EventLog;
+import org.utils.log.Trace;
 
 public abstract class NoiseInjector {
 
-    public abstract String[] injectNoise(List<String> traces);
+    public abstract Trace[] injectNoise(EventLog traces);
 
 }
